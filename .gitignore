@@ -3,5 +3,10 @@ npm-debug.log
 node_modules
 package-lock.json
 TODO*
-go.sum
+*.sum
 *.exe
+*.out
+*.test
+/vendor/
+/build/
+/bin/
