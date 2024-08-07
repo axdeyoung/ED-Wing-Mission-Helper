@@ -1,22 +1,15 @@
 package main
 
 import (
-	"errors"
 	"fmt"
-	"os"
 	"io"
 	"net/http"
-	"github.com/getlantern/systray"
-
-	// local
-	"journalparser"
+	"errors"
+	"os"
 )
 
-func main() {
-	http.HandleFunc("/trade/dump", getTradeDump)
-	http.HandleFunc("/trade/update", getTradeUpdate)
-
-	systray.Run(systrayReady, systrayExit)
+func initServer() {
+	initRouteResponses()
 
 	err := http.ListenAndServe(":3333", nil)
 	if errors.Is(err, http.ErrServerClosed) {
@@ -25,35 +18,19 @@ func main() {
 		fmt.Printf("error starting server: %s\n", err)
 		os.Exit(1)
 	}
-
-	
 }
 
-func systrayReady() {
-	systray.SetTitle("Elite Dangerous Helper Webserver")
-	systray.SetTooltip("Placeholder Tooltip")
-	mQuit := systray.AddMenuItem("Quit", "Shut down the server and terminate")
-
-	go func() {
-		for {
-			select{
-			case <-mQuit.ClickedCh:
-				systray.Quit()
-			}
-		}
-	}()
-}
-
-func systrayExit() {
-	os.Exit(0)
+func initRouteResponses() {
+	http.HandleFunc("/trade/dump", getTradeDump)
+	http.HandleFunc("/trade/update", getTradeUpdate)
 }
 
 func getTradeDump(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("got /trade/dump request\n")
-	io.WriteString(w, journalparser.DumpTradeJson())
+	io.WriteString(w, dumpTradeJson())
 }
 
 func getTradeUpdate(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("got /trade/update request\n")
-	io.WriteString(w, journalparser.UpdateTradeJson())
+	io.WriteString(w, updateTradeJson())
 }
