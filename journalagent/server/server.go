@@ -1,20 +1,21 @@
-package main
+package server
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"errors"
 	"os"
+
+	"github.com/axdeyoung/ed-wing-mission-helper/journalagent/journalparse"
 )
 
 const serverPortString = ":3333"
-const serverAddress = nil // all available local addresses
 
-func initServer() {
+func InitServer() {
 	initRouteResponses()
 
-	err := http.ListenAndServe(serverPortString, serverAddress)
+	err := http.ListenAndServe(serverPortString, nil)
 	if errors.Is(err, http.ErrServerClosed) {
 		fmt.Printf("server closed\n")
 	} else if err != nil {
@@ -30,10 +31,10 @@ func initRouteResponses() {
 
 func getTradeDump(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("got /trade/dump request\n")
-	io.WriteString(w, dumpTradeJson())
+	io.WriteString(w, journalparse.DumpTradeJson())
 }
 
 func getTradeUpdate(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("got /trade/update request\n")
-	io.WriteString(w, updateTradeJson())
+	io.WriteString(w, journalparse.UpdateTradeJson())
 }

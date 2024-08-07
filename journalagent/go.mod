@@ -2,9 +2,7 @@ module github.com/axdeyoung/ed-wing-mission-helper/journalagent
 
 go 1.18
 
-require (
-	github.com/getlantern/systray v1.2.2
-)
+require github.com/getlantern/systray v1.2.2
 
 require (
 	github.com/getlantern/context v0.0.0-20190109183933-c447772a6520 // indirect

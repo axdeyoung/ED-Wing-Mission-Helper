@@ -1,11 +1,12 @@
-package main
+package systemtray
 
 import (
-	"github.com/getlantern/systray"
 	"os"
+
+	"github.com/getlantern/systray"
 )
 
-func initSystray() {
+func InitSystray() {
 	systray.Run(systrayReady, systrayExit)
 }
 
@@ -16,7 +17,7 @@ func systrayReady() {
 
 	go func() {
 		for {
-			select{
+			select {
 			case <-mQuit.ClickedCh:
 				systray.Quit()
 			}
