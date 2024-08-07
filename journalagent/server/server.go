@@ -25,16 +25,21 @@ func InitServer() {
 }
 
 func initRouteResponses() {
-	http.HandleFunc("/trade/dump", getTradeDump)
-	http.HandleFunc("/trade/update", getTradeUpdate)
+	http.HandleFunc("/trade/dump", respondTradeDump)
+	http.HandleFunc("/trade/update", respondTradeUpdate)
+	http.HandleFunc("/", respondStatus)
 }
 
-func getTradeDump(w http.ResponseWriter, r *http.Request) {
+func respondStatus(w http.ResponseWriter, r *http.Request) {
+	io.WriteString(w, "journal agent is operational.") //TODO: include more status responses ie: is Elite Dangerous running? is it receiving incoming connections from the website?
+}
+
+func respondTradeDump(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("got /trade/dump request\n")
 	io.WriteString(w, journalparse.DumpTradeJson())
 }
 
-func getTradeUpdate(w http.ResponseWriter, r *http.Request) {
+func respondTradeUpdate(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("got /trade/update request\n")
 	io.WriteString(w, journalparse.UpdateTradeJson())
 }
