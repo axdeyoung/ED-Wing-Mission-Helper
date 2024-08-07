@@ -8,10 +8,13 @@ import (
 	"os"
 )
 
+const serverPortString = ":3333"
+const serverAddress = nil // all available local addresses
+
 func initServer() {
 	initRouteResponses()
 
-	err := http.ListenAndServe(":3333", nil)
+	err := http.ListenAndServe(serverPortString, serverAddress)
 	if errors.Is(err, http.ErrServerClosed) {
 		fmt.Printf("server closed\n")
 	} else if err != nil {

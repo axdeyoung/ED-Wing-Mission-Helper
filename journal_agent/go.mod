@@ -1,4 +1,4 @@
-module journalagent
+module github.com/axdeyoung/ed-wing-mission-helper/journalagent
 
 go 1.18
 
