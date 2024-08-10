@@ -1,33 +1,41 @@
 package server
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 
 	"github.com/axdeyoung/ed-wing-mission-helper/journalagent/journalparse"
 )
 
-const serverPortString = ":3333"
+const serverPort = 31173
 
+var (
+	server *http.Server
+)
+
+// InitServer is expected to be run when the program starts up.
 func InitServer() {
 	initRouteResponses()
+	startServer(serverPort)
+}
 
-	err := http.ListenAndServe(serverPortString, nil)
-	if errors.Is(err, http.ErrServerClosed) {
-		fmt.Printf("server closed\n")
-	} else if err != nil {
-		fmt.Printf("error starting server: %s\n", err)
-		os.Exit(1)
-	}
+func startServer(port int) {
+	server = &http.Server{Addr: fmt.Sprint(":", port)}
+
+	go func() {
+		err := server.ListenAndServe()
+		if err != nil {
+			fmt.Printf("Error starting server: ", err)
+		}
+	}()
 }
 
 func initRouteResponses() {
+	// note: the assignment of handler functions must be done by routes top-down.
+	http.HandleFunc("/", respondStatus)
 	http.HandleFunc("/trade/dump", respondTradeDump)
 	http.HandleFunc("/trade/update", respondTradeUpdate)
-	http.HandleFunc("/", respondStatus)
 }
 
 func respondStatus(w http.ResponseWriter, r *http.Request) {

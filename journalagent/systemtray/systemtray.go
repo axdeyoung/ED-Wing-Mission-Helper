@@ -1,16 +1,19 @@
 package systemtray
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/getlantern/systray"
 )
 
 func InitSystray() {
+	fmt.Println("Starting system tray interface")
 	systray.Run(systrayReady, systrayExit)
 }
 
 func systrayReady() {
+	fmt.Println("System tray ready. Populating with options...")
 	systray.SetTitle("Elite Dangerous Helper Webserver")
 	systray.SetTooltip("ED Wing Mission Helper")
 
@@ -21,6 +24,7 @@ func systrayReady() {
 	mQuit := systray.AddMenuItem("Quit", "Shut down the server and terminate")
 
 	go func() {
+		fmt.Println("System tray prepared. Awaiting input...")
 		for {
 			select {
 			case <-mOpenWebsite.ClickedCh:
