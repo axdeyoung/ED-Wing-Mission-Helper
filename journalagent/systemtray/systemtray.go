@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/getlantern/systray"
+	"fyne.io/systray"
 )
 
 func InitSystray() {
