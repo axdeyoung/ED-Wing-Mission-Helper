@@ -7,6 +7,6 @@ TODO*
 *.exe
 *.out
 *.test
-/vendor/
-/build/
-/bin/
+*/vendor/*
+*/build/*
+*/bin/*

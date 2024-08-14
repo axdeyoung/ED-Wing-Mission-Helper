@@ -38,16 +38,25 @@ func initRouteResponses() {
 	http.HandleFunc("/trade/update", respondTradeUpdate)
 }
 
+func setHeaders(w *http.ResponseWriter) {
+	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+	(*w).Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	(*w).Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+}
+
 func respondStatus(w http.ResponseWriter, r *http.Request) {
+	setHeaders(&w)
 	io.WriteString(w, "journal agent is operational.") //TODO: include more status responses ie: is Elite Dangerous running? is it receiving incoming connections from the website?
 }
 
 func respondTradeDump(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("got /trade/dump request\n")
+	setHeaders(&w)
 	io.WriteString(w, journalparse.DumpTradeJson())
 }
 
 func respondTradeUpdate(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("got /trade/update request\n")
+	setHeaders(&w)
 	io.WriteString(w, journalparse.UpdateTradeJson())
 }
