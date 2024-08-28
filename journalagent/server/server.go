@@ -34,8 +34,7 @@ func startServer(port int) {
 func initRouteResponses() {
 	// note: the assignment of handler functions must be done by routes top-down.
 	http.HandleFunc("/", respondStatus)
-	http.HandleFunc("/trade/dump", respondTradeDump)
-	http.HandleFunc("/trade/update", respondTradeUpdate)
+	http.HandleFunc("/getuserdata", respondUserData)
 }
 
 func setHeaders(w *http.ResponseWriter) {
@@ -49,14 +48,8 @@ func respondStatus(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "journal agent is operational.") //TODO: include more status responses ie: is Elite Dangerous running? is it receiving incoming connections from the website?
 }
 
-func respondTradeDump(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("got /trade/dump request\n")
+func respondUserData(w http.ResponseWriter, r *http.Request) {
+	fmt.Printf("got /getuserdata request\n")
 	setHeaders(&w)
-	io.WriteString(w, journalparse.DumpTradeJson())
-}
-
-func respondTradeUpdate(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("got /trade/update request\n")
-	setHeaders(&w)
-	io.WriteString(w, journalparse.UpdateTradeJson())
+	io.WriteString(w, journalparse.UserDataJson())
 }

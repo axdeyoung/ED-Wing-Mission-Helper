@@ -5,6 +5,8 @@ import (
 	"os"
 
 	"fyne.io/systray"
+	"github.com/axdeyoung/ed-wing-mission-helper/journalagent/fileselector"
+	"github.com/axdeyoung/ed-wing-mission-helper/journalagent/journalparse"
 )
 
 func InitSystray() {
@@ -30,7 +32,9 @@ func systrayReady() {
 			case <-mOpenWebsite.ClickedCh:
 				break // open the website in the OS's default browser
 			case <-mFindJournal.ClickedCh:
-				break // open a system GUI for the user to find their Elite Dangerous journal directory
+				fmt.Println("Previous journal directory: ", journalparse.Dir)
+				journalparse.Dir = fileselector.LocateFolder("Locate Journal Directory", journalparse.Dir) // open a system GUI for the user to find their Elite Dangerous journal directory
+				fmt.Println("New journal directory: ", journalparse.Dir)
 			case <-mSetPort.ClickedCh:
 				break // open a GUI for the user to enter a port for the server.
 			case <-mQuit.ClickedCh:

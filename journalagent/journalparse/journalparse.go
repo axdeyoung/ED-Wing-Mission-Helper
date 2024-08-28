@@ -1,15 +1,21 @@
 package journalparse
 
-/*
-	Resets file pointer and returns all relevant data since previous call
-*/
-func DumpTradeJson() string {
-	return "{ \"placeholder\": \"this is where we will dump all the trade-relevant data from the Elite Dangerous pilot journal\" }"
+import (
+	"os"
+	"path/filepath"
+)
+
+var Dir string
+
+func InitJournalParse() {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		Dir = ""
+	} else {
+		Dir = filepath.Join(homeDir, "Saved Games", "Frontier Developments", "Elite Dangerous")
+	}
 }
 
-/*
-	Moves file pointer down and returns new relevant data since previous call
-*/
-func UpdateTradeJson() string {
-	return "{ \"placeholder\": \"this is where we will put updates to the trade-relevant data from the Elite Dangerous pilot journal\" }"
+func UserDataJson() string {
+	return `{"data": "This is where the user data will go"}`
 }
