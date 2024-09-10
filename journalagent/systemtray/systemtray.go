@@ -32,9 +32,9 @@ func systrayReady() {
 			case <-mOpenWebsite.ClickedCh:
 				break // open the website in the OS's default browser
 			case <-mFindJournal.ClickedCh:
-				fmt.Println("Previous journal directory: ", journalparse.Dir)
-				journalparse.Dir = fileselector.LocateFolder("Locate Journal Directory", journalparse.Dir) // open a system GUI for the user to find their Elite Dangerous journal directory
-				fmt.Println("New journal directory: ", journalparse.Dir)
+				fmt.Println("Previous journal directory: ", journalparse.GetDir())
+				journalparse.UpdateDir(fileselector.LocateFolder("Locate Journal Directory", journalparse.GetDir())) // open a system GUI for the user to find their Elite Dangerous journal directory
+				fmt.Println("New journal directory: ", journalparse.GetDir())
 			case <-mSetPort.ClickedCh:
 				break // open a GUI for the user to enter a port for the server.
 			case <-mQuit.ClickedCh:
