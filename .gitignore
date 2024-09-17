@@ -1,6 +1,7 @@
 .vscode
 npm-debug.log
 node_modules
+keys.txt
 package-lock.json
 TODO*
 *.sum

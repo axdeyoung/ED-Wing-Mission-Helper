@@ -1,0 +1,4 @@
+VERSION=0.0.1
+SERVER_ADDR=cobalt.level27.ca
+SERVER_PORT=3000
+DEFAULT_JOURNAL_DIR_FROM_HOME=Saved Games\Frontier Developments\Elite Dangerous
