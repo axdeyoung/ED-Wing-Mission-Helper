@@ -26,7 +26,7 @@ func startServer(port int) {
 	go func() {
 		err := server.ListenAndServe()
 		if err != nil {
-			fmt.Printf("Error starting server: ", err)
+			fmt.Println("Error starting server: ", err)
 		}
 	}()
 }
