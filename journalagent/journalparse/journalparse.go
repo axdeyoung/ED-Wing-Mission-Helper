@@ -21,11 +21,13 @@ var dir string
 var (
 	journalReadSig      = make(chan struct{})
 	journalQuitSig      = make(chan struct{})
-	journalNewLinesChan = make(chan struct{})
+	journalNewLinesChan = make(chan []string)
+	isJournalOpen       bool
 
 	cargoReadSig      = make(chan struct{})
 	cargoQuitSig      = make(chan struct{})
-	cargoNewLinesChan = make(chan struct{})
+	cargoNewLinesChan = make(chan []string)
+	isCargoOpen       bool
 )
 
 func InitJournalParse() {
@@ -39,7 +41,25 @@ func InitJournalParse() {
 
 func UpdateDir(newDir string) {
 	dir = newDir
-	// TODO: try to reopen all files in new directory.
+
+	journalPath, err := newestJournalFilePath()
+	if err != nil {
+		fmt.Println("Unable to find newest Journal file path: ", err)
+	}
+
+	if isJournalOpen {
+		journalQuitSig <- struct{}{}
+		// if there is journal file already open, close it
+	}
+	isJournalOpen = true
+	go listenToFile(journalPath, true, journalReadSig, journalQuitSig, journalNewLinesChan)
+
+	if isCargoOpen {
+		cargoQuitSig <- struct{}{}
+	}
+	isCargoOpen = true
+	go listenToFile("Cargo.json", false, cargoReadSig, cargoQuitSig, cargoNewLinesChan)
+
 	// TODO: notify user if any files fail to open. This may be the result of the game never having been played, an incorrect directory, or a non-existent directory.
 }
 
@@ -110,7 +130,6 @@ func listenToFile(
 	readSigChan <-chan struct{},
 	quitSigChan <-chan struct{},
 	newLinesChan chan<- []string) error {
-
 	file, err := os.Open(filePath)
 	if err != nil {
 		return err
