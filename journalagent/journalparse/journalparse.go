@@ -28,6 +28,11 @@ var (
 	cargoQuitSig        = make(chan struct{})
 	cargoNewLinesChan   = make(chan []string)
 	cargoListeningMutex sync.Mutex
+
+	navRouteReadSig        = make(chan struct{})
+	navRouteQuitSig        = make(chan struct{})
+	navRouteNewLinesChan   = make(chan []string)
+	navRouteListeningMutex sync.Mutex
 )
 
 func InitJournalParse() {
@@ -62,7 +67,15 @@ func UpdateDir(newDir string) {
 	default:
 	}
 	go listenToFile(journalFile("Cargo.json"), false, cargoReadSig, cargoQuitSig, cargoNewLinesChan, &cargoListeningMutex)
+
+	select {
+	case navRouteQuitSig <- struct{}{}:
+		// if there is navroute file already open, close it
+	default:
+	}
+	go listenToFile(journalFile("NavRoute.json"), false, navRouteReadSig, navRouteQuitSig, navRouteNewLinesChan, &navRouteListeningMutex)
 	fmt.Println("Opened Journal Path: ", journalPath)
+
 	// TODO: notify user if any files fail to open. This may be the result of the game never having been played, an incorrect directory, or a non-existent directory.
 }
 
@@ -175,6 +188,7 @@ func listenToFile(
 
 func GetUpdatesJson() (string, error) {
 	cargoToChange := false
+	navRouteToChange := false
 	updatesToSend := ""
 
 	select {
@@ -192,7 +206,7 @@ func GetUpdatesJson() (string, error) {
 			continue
 		}
 
-		newUpdateToSend, cargoChanged, err := filterAndParseJournalEntry(entry)
+		newUpdateToSend, cargoChanged, navRouteChanged, err := filterAndParseJournalEntry(entry)
 		if err != nil {
 			fmt.Println("Warning: error parsing journal entry: ", rawEntry, ": ", err)
 			continue
@@ -203,6 +217,9 @@ func GetUpdatesJson() (string, error) {
 		if cargoChanged {
 			cargoToChange = true
 		}
+		if navRouteChanged {
+			navRouteToChange = true
+		}
 	}
 	if cargoToChange {
 		newCargoToSend, err := parseCargo()
@@ -211,6 +228,15 @@ func GetUpdatesJson() (string, error) {
 		}
 		updatesToSend += newCargoToSend + "\n"
 	}
+
+	if navRouteToChange {
+		newNavRouteToSend, err := parseNavRoute()
+		if err != nil {
+			return "", fmt.Errorf("unable to parse navroute: %w", err)
+		}
+		updatesToSend += newNavRouteToSend + "\n"
+	}
+
 	return updatesToSend, nil
 }
 
@@ -221,31 +247,129 @@ returns 3 values:
 	bool: Does the given entry indicate a cargo update?
 	error: any error causing this function to fail.
 */
-func filterAndParseJournalEntry(entry map[string]any) (string, bool, error) {
+func filterAndParseJournalEntry(entry map[string]any) (string, bool, bool, error) {
 	var err error
 	var dataToSend []byte
 	var updateCargo bool
+	var updateNavRoute bool
 
 	err = nil
 	updateCargo = false
+	updateNavRoute = false
 
 	switch entry["event"] {
 	case "Commander":
 		commanderName = entry["Name"].(string)
-		delete(entry, "FID")
-		dataToSend, err = json.Marshal(entry)
+		wantedKeys := []string{
+			"timestamp",
+			"event",
+			"Name",
+		}
+		dataToSend, err = json.Marshal(filterByKeys(entry, wantedKeys))
+
+	// CARGO EVENTS
 	case "Cargo":
 		updateCargo = true
+
+	// WING EVENTS
+	case "WingJoin", "WingLeave", "WingAdd": // this player joins a wing, leaves a wing, or another player joins this wing
+		dataToSend, err = json.Marshal(entry)
+	// Note: there is NO event when another player leaves the wing.
+
+	// MISSION EVENTS
+	case "Missions", "MissionAccepted", "MissionCompleted": // expected once at startup; provides a full list of active, failed and completed missions.
+		dataToSend, err = json.Marshal(entry)
+
+	// NAVIGATION EVENTS
+	case "Location": // expected once at startup, and when respawning at a station
+		wantedKeys := []string{
+			"timestamp",
+			"event",
+			"StarSystem",
+			"DistFromStarLS",
+			"Body",
+			"Docked",
+			"StationName",
+			"StationType",
+			"MarketID",
+		}
+		dataToSend, err = json.Marshal(filterByKeys(entry, wantedKeys))
+	case "Docked": // when landing at a pad in a space station, outpost, or surface settlement
+		wantedKeys := []string{
+			"timestamp",
+			"event",
+			"StarSystem",
+			"DistFromStarLS",
+			"StationName",
+			"StationType",
+			"MarketID",
+		}
+		dataToSend, err = json.Marshal(filterByKeys(entry, wantedKeys))
+	case "Undocked": // when lifting off from a pad in a space station, outpost, or surface settlement
+		dataToSend, err = json.Marshal(entry)
+	case "ApproachBody", "LeaveBody": // when entering or exiting "Orbital Cruise" altitude
+		wantedKeys := []string{
+			"timestamp",
+			"event",
+			"StarSystem",
+			"Body",
+		}
+		dataToSend, err = json.Marshal(filterByKeys(entry, wantedKeys))
+	case "Touchdown", "Liftoff": // when landing or taking off a planet surface
+		if val, exists := entry["PlayerControlled"]; exists && !val.(bool) {
+			return "", false, false, nil // ignore this entry if not player controlled, ie: ship controlled from SRV
+		}
+		wantedKeys := []string{
+			"timestamp",
+			"event",
+			"StarSystem",
+			"Body",
+			"OnStation",
+			"OnPlanet",
+		}
+		dataToSend, err = json.Marshal(filterByKeys(entry, wantedKeys))
+	case "SupercruiseEntry": // when entering Supercruise from normal space
+		wantedKeys := []string{
+			"timestamp",
+			"event",
+			"StarSystem",
+			"Taxi",
+			"Multicrew",
+		}
+		dataToSend, err = json.Marshal(filterByKeys(entry, wantedKeys))
+	case "SupercruiseExit": // when exiting Supercruise to normal space
+		wantedKeys := []string{
+			"timestamp",
+			"event",
+			"StarSystem",
+			"Body",
+			"BodyType",
+			"Taxi",
+			"Multicrew",
+		}
+		dataToSend, err = json.Marshal(filterByKeys(entry, wantedKeys))
+	case "FSDJump": // when jumping from one star to another
+		wantedKeys := []string{
+			"timestamp",
+			"event",
+			"StarSystem",
+			"Taxi",
+			"Multicrew",
+		}
+		dataToSend, err = json.Marshal(filterByKeys(entry, wantedKeys))
+	case "NavRoute", "NavRouteClear": // when plotting or clearing a multi-star route
+		updateNavRoute = true
+
 	default: // not an event type we care about. Ignore it.
-		return "", false, nil
+		return "", false, false, nil
 	}
 
 	// aggregating all the errors here instead of having a separate one in each case.
 	if err != nil {
-		return "", false, fmt.Errorf("error processing journal entry: %w", err)
+		return "", false, false, fmt.Errorf("error processing journal entry: %w", err)
 	}
 
-	return string(dataToSend), updateCargo, err
+	return string(dataToSend), updateCargo, updateNavRoute, err
 }
 
 func parseCargo() (string, error) {
@@ -253,4 +377,54 @@ func parseCargo() (string, error) {
 	cargoLines := <-cargoNewLinesChan
 	cargoJson := strings.Join(cargoLines, "\n")
 	return cargoJson, nil
+}
+
+func parseNavRoute() (string, error) {
+	navRouteReadSig <- struct{}{}
+	navRouteLines := <-navRouteNewLinesChan
+	navRouteJson := strings.Join(navRouteLines, "\n")
+
+	var data map[string]any
+	err := json.Unmarshal([]byte(navRouteJson), &data)
+	if err != nil {
+		return "", fmt.Errorf("error unmarshalling navroute: %w", err)
+	}
+
+	if data["event"].(string) == "NavRouteClear" {
+		return navRouteJson, nil
+	}
+
+	route, exists := data["route"].([]map[string]any)
+	if !exists {
+		return "", fmt.Errorf(`"route" key missing from NavRoute event`)
+	}
+
+	var filteredRoute []map[string]any
+	for _, routeNode := range route {
+		filteredNode := filterByKeys(routeNode, []string{"StarSystem"})
+		filteredRoute = append(filteredRoute, filteredNode)
+	}
+	data["route"] = filteredRoute
+
+	cleanedNavRouteJson, err := json.Marshal(data)
+	if err != nil {
+		return "", fmt.Errorf("error marshalling navroute: %w", err)
+	}
+	return string(cleanedNavRouteJson), nil
+}
+
+/*
+Returns a new map with only the key/value pairs from source specified in the keys parameter.
+If a key does not exist, it is ignored.
+*/
+func filterByKeys[K comparable, V any](source map[K]V, keys []K) map[K]V {
+	dest := make(map[K]V)
+
+	for _, key := range keys {
+		value, exists := source[key]
+		if exists {
+			dest[key] = value
+		}
+	}
+	return dest
 }
