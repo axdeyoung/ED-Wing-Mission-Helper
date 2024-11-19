@@ -1,25 +1,45 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import PropTypes from 'prop-types';
 
-const Fetch = () => {
+const Fetch = forwardRef(({ className, url, defaultText }, ref) => {
+    const [fetchedText, setFetchedText] = useState(defaultText);
 
-    const [fetchedText, setFetchedText] = useState("[No server response]");
+    const fetchData = async () => {
+        try {
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const text = await response.text();
+            setFetchedText(text);
+        } catch (err) {
+            console.error('Fetch error:', err);
+            setFetchedText(defaultText);
+        }
+    };
+
+    useImperativeHandle(ref, () => ({
+        refresh: fetchData
+    }));
 
     useEffect(() => {
-        fetch('http://127.0.0.1:31173/')
-            .then((response) => {
-                return response.text();
-            })
-            .then((text) => {
-                console.log(text);
-                setFetchedText(text);
-            });
-    }, []);
+        fetchData();
+    }, [url]);
 
-    return (
-        <div>
-            {fetchedText}
-        </div>
-    );
+    return <span className={className}>{fetchedText}</span>;
+});
+
+// Add display name for debugging
+Fetch.displayName = 'Fetch';
+
+Fetch.propTypes = {
+    className: PropTypes.string,
+    url: PropTypes.string.isRequired,
+    defaultText: PropTypes.string.isRequired,
+};
+
+Fetch.defaultProps = {
+    className: '',
 };
 
 export default Fetch;
