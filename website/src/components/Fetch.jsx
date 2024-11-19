@@ -1,7 +1,7 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import PropTypes from 'prop-types';
 
-const Fetch = forwardRef(({ className, url, defaultText }, ref) => {
+const Fetch = forwardRef(({ className = '', url, defaultText }, ref) => {
     const [fetchedText, setFetchedText] = useState(defaultText);
 
     const fetchData = async () => {
@@ -36,10 +36,6 @@ Fetch.propTypes = {
     className: PropTypes.string,
     url: PropTypes.string.isRequired,
     defaultText: PropTypes.string.isRequired,
-};
-
-Fetch.defaultProps = {
-    className: '',
 };
 
 export default Fetch;
